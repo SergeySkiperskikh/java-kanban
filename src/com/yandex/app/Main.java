@@ -4,11 +4,10 @@ import com.yandex.app.service.*;
 
 
 public class Main {
-    private static MainMenu mainMenu;
+    private static TaskManager taskManager;
 
     public static void main(String[] args) {
-        mainMenu = MainMenu.getInstance();
-        mainMenu.choseTask();
+
 
     }
 

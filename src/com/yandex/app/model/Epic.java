@@ -4,32 +4,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Epic extends Task {
-    private List<Subtask> subtasksList = new ArrayList<>();
+    private List<Integer> subtasksId = new ArrayList<>();
 
     public Epic(String name, String description) {
         super(name, description, Status.NEW);
     }
 
-    public void addSubtask(Subtask subtask) {
-        subtasksList.add(subtask);
+    public void addSubtask(Integer id) {
+        subtasksId.add(id);
     }
 
-    public void removeSubtask(Subtask subtask) {
-        subtasksList.remove(subtask);
+    public void removeSubtask(Integer id) {
+        subtasksId.remove(id);
     }
 
-    public List<Subtask> getSubtasksList() {
-        return subtasksList;
+    public List<Integer> getSubtasksId() {
+        return subtasksId;
     }
 
-    public void setSubtasksList(List<Subtask> subtasksList) {
-        this.subtasksList = subtasksList;
+    public void setSubtasksId(List<Integer> subtasksId) {
+        this.subtasksId = subtasksId;
     }
 
     @Override
     public String toString() {
         return super.toString() +
-                "subtasksList=" + subtasksList +
+                "subtasksId=" + subtasksId +
                 '}';
     }
 }

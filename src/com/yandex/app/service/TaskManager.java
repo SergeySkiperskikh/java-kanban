@@ -1,152 +1,29 @@
 package com.yandex.app.service;
 
-import com.yandex.app.model.*;
+import com.yandex.app.model.Subtask;
+import com.yandex.app.model.Task;
+import com.yandex.app.model.TaskType;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
 
-public class TaskManager {
-    private static final Map<Integer, Task> tasks = new HashMap<>();
-    private static final Map<Integer, Subtask> subtasks = new HashMap<>();
-    private static final Map<Integer, Epic> epics = new HashMap<>();
+public interface TaskManager {
+    List<? extends Task> getTaskList(TaskType task);
 
-    private static TaskManager instance;
+    void removeTasksMap(TaskType taskType);
 
-    private static int id = 0;
+    int createTask(Task task);
 
-    private TaskManager() {
-    }
+    Task getTask(TaskType taskType, int identifier);
 
-    public static synchronized TaskManager getInstance() {
-        if (instance == null) {
-            instance = new TaskManager();
-        }
-        return instance;
-    }
+    void removeTask(TaskType taskType, int identifier);
 
-    protected List<? extends Task> getTaskList(TaskType task) {
-        return switch (task) {
-            case EPIC -> new ArrayList<>(epics.values());
-            case SUBTASK -> new ArrayList<>(subtasks.values());
-            case TASK -> new ArrayList<>(tasks.values());
-        };
-    }
+    void updateTask(Task task, TaskType taskType, int identifier);
 
-    protected void removeTasksMap(TaskType taskType) { // проверить
-        switch (taskType) {
-            case EPIC -> {
-                epics.clear();
-                subtasks.clear();
-            }
-            case SUBTASK -> {
-                subtasks.clear();
-                for (Epic epic : epics.values()) {
-                    epic.getSubtasksList().clear();
-                    checkEpicStatus(epic.getId());
-                }
+    void checkEpicStatus(int epicId);
 
-            }
-            case TASK -> tasks.clear();
-        }
-    }
+    List<Subtask> getSubtaskList(int epicId);
 
-    protected void createTask(Task task, TaskType taskType) {
-        task.setId(++id);
-        switch (taskType) {
-            case EPIC -> epics.put(id, (Epic) task);
-            case TASK -> tasks.put(id, task);
-            case SUBTASK -> {
-                subtasks.put(id, (Subtask) task);
-                epics.get(((Subtask) task).getEpicId()).addSubtask((Subtask) task);
-                checkEpicStatus(((Subtask) task).getEpicId());
-            }
-
-        }
-    }
-
-    protected Task getTask(TaskType taskType, int identifier) {
-        return switch (taskType) {
-            case EPIC -> epics.get(identifier);
-            case TASK -> tasks.get(identifier);
-            case SUBTASK -> subtasks.get(identifier);
-        };
-    }
-
-    protected void removeTask(TaskType taskType, int identifier) {
-        switch (taskType) {
-            case EPIC -> {
-                for (Subtask sub : epics.get(id).getSubtasksList()) {
-                    subtasks.remove(sub);
-                }
-                epics.remove(identifier);
-            }
-            case TASK -> tasks.remove(identifier);
-            case SUBTASK -> {
-                int epicId = subtasks.get(identifier).getEpicId();
-                subtasks.remove(identifier);
-                checkEpicStatus(epicId);
-            }
-        }
-    }
-
-    protected void updateTask(Task task, TaskType taskType, int identifier) {
-        task.setId(identifier);
-        switch (taskType) {
-            case EPIC -> {
-                ((Epic) task).setSubtasksList(epics.get(identifier).getSubtasksList());
-                // По другому я не знаю как сделать, сохранив условие что задача должна передваться в метод
-                epics.put(identifier, (Epic) task);
-                checkEpicStatus(identifier);
-            }
-            case TASK -> {
-                tasks.put(identifier, task);
-            }
-            case SUBTASK -> { // здесь, кажется, тоже что то намудрил
-                Subtask oldTask = subtasks.get(identifier);
-                List<Subtask> subtaskList = epics.get(oldTask.getEpicId()).getSubtasksList();
-                int subtaskListIndex = subtaskList.indexOf(oldTask);
-                ((Subtask) task).setEpicId(oldTask.getEpicId());
-                subtasks.put(identifier, (Subtask) task);
-                epics.get(((Subtask) task).getEpicId()).getSubtasksList().set(subtaskListIndex, (Subtask) task);
-                checkEpicStatus(((Subtask) task).getEpicId());
-            }
-
-        }
-    }
+    List<Task> getHistory();
 
 
-    protected void checkEpicStatus(int epicId) {
-        Epic epic = epics.get(epicId);
-        if (epic.getSubtasksList().isEmpty()) {
-            epic.setStatus(Status.NEW);
-            return;
-        }
-        Status epicStatus = Status.IN_PROGRESS;
-        boolean epicStatusIsDone = false;
-        boolean epicStatusIsNew = false;
-
-        for (Subtask sub : epic.getSubtasksList()) {
-            if (sub.getStatus().equals(Status.DONE)) {
-                epicStatusIsDone = true;
-            }
-            if (sub.getStatus().equals(Status.NEW)) {
-                epicStatusIsNew = true;
-            }
-        }
-        if (epicStatusIsDone && !epicStatusIsNew) {
-            epicStatus = Status.DONE;
-        }
-
-        if (!epicStatusIsDone && epicStatusIsNew) {
-            epicStatus = Status.NEW;
-        }
-
-        epic.setStatus(epicStatus);
-    }
-
-    protected List<Subtask> getSubtaskList(int epicId) {
-        return epics.get(epicId).getSubtasksList();
-    }
 }

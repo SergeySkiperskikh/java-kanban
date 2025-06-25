@@ -22,7 +22,6 @@ public class InMemoryTaskManagerTest {
         Task task = new Task("Test addNewTask", "Test addNewTask description", Status.NEW);
 
         final int taskId = taskManager.createTask(task);
-//Я хотел бы отойти от TaskType и все задачи в одной мапе хрнаить, но дедлайн на носу, поэтому не трачу время на это
         final Task savedTask = taskManager.getTask(TaskType.TASK, taskId);
 
         Assertions.assertNotNull(savedTask, "Task not found");

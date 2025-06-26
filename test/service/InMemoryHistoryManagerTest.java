@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 public class InMemoryHistoryManagerTest {
-    HistoryManager historyManager;
+    private HistoryManager historyManager;
     private Task task1;
     private Task task2;
 

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 public class InMemoryTaskManagerTest {
-    TaskManager taskManager;
+    private TaskManager taskManager;
 
     @BeforeEach
     public void BeforeEach() {

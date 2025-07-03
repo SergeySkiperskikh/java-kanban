@@ -101,6 +101,8 @@ public class InMemoryTaskManager implements TaskManager {
                 checkEpicStatus(epicId);
             }
         }
+        history.remove(identifier);
+
     }
 
     @Override

@@ -1,12 +1,15 @@
 package com.yandex.app.service;
 
+import java.io.File;
+
 public class Managers {
     private Managers (){
 
     }
 
     public static TaskManager getDefault() {
-        return new InMemoryTaskManager();
+        FileBackedTaskManager taskManager = FileBackedTaskManager.loadFromFile(new File("src/resources/data.csv"));
+        return taskManager;
     }
 
 

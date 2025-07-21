@@ -1,11 +1,15 @@
 package com.yandex.app.model;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+
 public class Subtask extends Task {
     private int epicId;
 
-    public Subtask(String name, String description, Status taskStatus, int epicId) {
-        super(name, description, taskStatus);
+    public Subtask(String name, String description, Status taskStatus, int epicId, Integer durationInMinutes, LocalDateTime startTime) {
+        super(name, description, taskStatus, durationInMinutes, startTime);
         this.epicId = epicId;
+        this.type = TaskType.SUBTASK;
     }
 
     public int getEpicId() {

@@ -9,6 +9,7 @@ import com.yandex.app.utility.CSVFormatter;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.util.Arrays;
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
     private final File file;
@@ -23,28 +24,23 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         try {
             String loaderFile = Files.readString(file.toPath());
             String[] splitFile = loaderFile.split(System.lineSeparator());
+            Arrays.stream(splitFile).skip(1)
+                    .filter(line -> !(line == null || line.isEmpty() || line.isBlank()))
+                    .map(CSVFormatter::taskFromString)
+                    .forEach(taskManager::addTask);
 
-            for (int i = 1; i < splitFile.length; i++) {
-                String line = splitFile[i];
-                if (line == null || line.isEmpty() || line.isBlank()) {
-                    continue;
-                }
-                Task task = CSVFormatter.taskFromString(line);
-                if (task.getId() > id) {
-                    id = task.getId();
-                }
-                taskManager.addTask(task);
-            }
+            taskManager.tasksById.values()
+                    .stream()
+                    .filter(task -> task.getType() == TaskType.SUBTASK)
+                    .map(task -> (Subtask) task)
+                    .forEach(subtask -> {
+                        Epic epic = (Epic) taskManager.tasksById.get(subtask.getEpicId());
+                        if (epic == null) {
+                            throw new IllegalArgumentException("Epic not found");
+                        }
+                        epic.addSubtask(subtask);
+                    });
 
-            if (!taskManager.subtasks.isEmpty()) {
-                for (Subtask subtask : taskManager.subtasks.values()) {
-                    Epic epic = taskManager.epics.get(subtask.getEpicId());
-                    if (epic == null) {
-                        throw new IllegalArgumentException("Epic not found");
-                    }
-                    epic.addSubtask(id);
-                }
-            }
         } catch (IOException e) {
             throw new ManagerSaveException("Failed to load: " + e.getMessage());
         }
@@ -52,8 +48,8 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     @Override
-    public Task getTask(TaskType taskType, int identifier) {
-        Task task = super.getTask(taskType, identifier);
+    public Task getTask(int identifier) {
+        Task task = super.getTask(identifier);
         save();
         return task;
     }
@@ -66,14 +62,14 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     @Override
-    public void updateTask(Task task, TaskType taskType, int identifier) {
-        super.updateTask(task, taskType, identifier);
+    public void updateTask(Task task, int identifier) {
+        super.updateTask(task, identifier);
         save();
     }
 
     @Override
-    public void removeTask(TaskType taskType, int identifier) {
-        super.removeTask(taskType, identifier);
+    public void removeTask(int identifier) {
+        super.removeTask(identifier);
         save();
     }
 
@@ -84,32 +80,17 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private void save() {
-
+        //Я пробовал сделать этот метод со стримами, получается некрасиво, плюс дублирующие обработки IO
+        //Возможно просто нет опыта нормально сделать через стрим. Я решил вернуть к реализации с циклом,
+        // Если нужно будет, переделаю
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             writer.write(CSVFormatter.getHeader());
             writer.newLine();
 
-            if (!tasks.isEmpty()) {
-                for (Task task : tasks.values()) {
-                    writer.write(CSVFormatter.toString(task, TaskType.TASK));
-                    writer.newLine();
-                }
+            for (Task task : tasksById.values()) {
+                writer.write(CSVFormatter.toString(task));
+                writer.newLine();
             }
-            if (!epics.isEmpty()) {
-                for (Task task : epics.values()) {
-                    writer.write(CSVFormatter.toString(task, TaskType.EPIC));
-                    writer.newLine();
-                }
-            }
-            if (!subtasks.isEmpty()) {
-                for (Task task : subtasks.values()) {
-                    writer.write(CSVFormatter.toString(task, TaskType.SUBTASK));
-                    writer.newLine();
-                }
-            }
-            writer.newLine();
-            // writer.write(CSVFormatter.toString(history));
-            // writer.newLine();
 
         } catch (IOException e) {
             throw new ManagerSaveException("Failed to save: " + e.getMessage());
@@ -117,19 +98,14 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private void addTask(Task task) {
-        // Отедльный метод, который копирует метод создания таски, но здесь не меняется ID
         if (task == null) {
             throw new IllegalArgumentException("Task cannot be null");
         }
-
-        if (task instanceof Epic) {
-            Epic epic = (Epic) task;
-            epics.put(epic.getId(), epic);
-        } else if (task instanceof Subtask) {
-            Subtask subtask = (Subtask) task;
-            subtasks.put(subtask.getId(), subtask);
-        } else {
-            tasks.put(task.getId(), task);
+        if (task.getId() > identifier) {
+            identifier = task.getId();
         }
+        tasksById.put(task.getId(), task);
+        prioritizedTasks.add(task);
+
     }
 }

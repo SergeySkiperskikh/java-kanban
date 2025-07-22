@@ -80,18 +80,21 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private void save() {
-        //Я пробовал сделать этот метод со стримами, получается некрасиво, плюс дублирующие обработки IO
-        //Возможно просто нет опыта нормально сделать через стрим. Я решил вернуть к реализации с циклом,
-        // Если нужно будет, переделаю
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             writer.write(CSVFormatter.getHeader());
             writer.newLine();
 
-            for (Task task : tasksById.values()) {
-                writer.write(CSVFormatter.toString(task));
-                writer.newLine();
-            }
-
+            tasksById.values()
+                    .stream()
+                    .map(CSVFormatter::toString)
+                    .forEach(line -> {
+                        try {
+                            writer.write(line);
+                            writer.newLine();
+                        } catch (IOException e) {
+                            throw new UncheckedIOException("Line writing error" + line, e);
+                        }
+                    });
         } catch (IOException e) {
             throw new ManagerSaveException("Failed to save: " + e.getMessage());
         }

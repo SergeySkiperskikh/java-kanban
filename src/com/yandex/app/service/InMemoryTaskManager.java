@@ -64,6 +64,12 @@ public class InMemoryTaskManager implements TaskManager {
                         });
 
             }
+            case TASK -> {
+            }
+            default -> {
+                return;
+            }
+
         }
         //Общие действия для всех типов задач
         idForRemove.forEach(taskId -> {
@@ -101,12 +107,15 @@ public class InMemoryTaskManager implements TaskManager {
                     throw new IllegalArgumentException("Epic not found");
                 }
                 tasksById.put(identifier, subtask);
-
                 //добавляем сабтаску в епик
                 epic.addSubtask(subtask);
                 //Так как добавилась новая подзадача у епика, я обновляю его в множестве
                 checkEpicStatus(epic.getId());
                 recalculateEpicTime(epic.getId());
+            }
+            default -> {
+                identifier--;
+                return -1;
             }
         }
         return identifier;
@@ -149,17 +158,19 @@ public class InMemoryTaskManager implements TaskManager {
                 }
 
             }
+            case TASK -> {}
+            default -> {
+                return;
+            }
         }
         //Общая логика для всех типов задач
         tasksById.remove(id);
         prioritizedTasks.remove(task);
         history.remove(id);
-
     }
 
     @Override
     public void updateTask(Task task, int id) {
-
         Task oldTask = tasksById.get(id);
         if (oldTask == null) {
             throw new IllegalArgumentException("Incorrect ID");
@@ -208,7 +219,8 @@ public class InMemoryTaskManager implements TaskManager {
                 //пересчитываем епик
                 recalculateEpicTime(newSubtask.getEpicId());
             }
-
+            default -> {
+            }
         }
     }
 
@@ -292,7 +304,7 @@ public class InMemoryTaskManager implements TaskManager {
         prioritizedTasks.remove(epic);
         epic.recalculateTime(getSubtaskList(epicId));
         //Если значения по умолчанию не добавляю в множество
-        if(epic.getStartTime().equals(Epic.DEFAULT_START_TIME) | epic.getEndTime().equals(Epic.DEFAULT_END_TIME)) {
+        if (epic.getStartTime().equals(Epic.DEFAULT_START_TIME) | epic.getEndTime().equals(Epic.DEFAULT_END_TIME)) {
             return;
         }
         prioritizedTasks.add(epic);

@@ -1,0 +1,4 @@
+id,type,name,status,description,starttime,duration,epic
+1,TASK,Task,NEW,Description,2025-06-22T10:30,PT20M,
+2,EPIC,Epic,NEW,epicD,2025-07-22T10:30,PT20M,
+3,SUBTASK,Sub,NEW,subD,2025-07-22T10:30,PT20M,2

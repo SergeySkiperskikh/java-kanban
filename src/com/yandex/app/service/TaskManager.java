@@ -13,11 +13,11 @@ public interface TaskManager {
 
     int createTask(Task task);
 
-    Task getTask(TaskType taskType, int identifier);
+    Task getTask(int identifier);
 
-    void removeTask(TaskType taskType, int identifier);
+    void removeTask(int identifier);
 
-    void updateTask(Task task, TaskType taskType, int identifier);
+    void updateTask(Task task, int identifier);
 
     void checkEpicStatus(int epicId);
 
@@ -25,5 +25,7 @@ public interface TaskManager {
 
     List<Task> getHistory();
 
+    List<Task> getPrioritizedTasks();
 
+    boolean isOverlapping(Task task);
 }

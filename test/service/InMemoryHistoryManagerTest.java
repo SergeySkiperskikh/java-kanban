@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class InMemoryHistoryManagerTest {
@@ -18,9 +19,9 @@ public class InMemoryHistoryManagerTest {
     @BeforeEach
     void beforeEach() {
         historyManager = Managers.getDefaultHistory();
-        task1 = new Task("Task1", "des", Status.NEW);
-        task2 = new Task("Task2", "des", Status.NEW);
-        task1.setId(1);//Если не задать Id, то тесты не пройдет, потому что задачи с одинаковым id удаляются из списка
+        task1 = new Task("Task1", "des", Status.NEW,20, LocalDateTime.of(2025, 6, 22, 10, 30));
+        task2 = new Task("Task2", "des", Status.NEW,20, LocalDateTime.of(2025, 3, 22, 10, 30));
+        task1.setId(1);
         task2.setId(2);
     }
 

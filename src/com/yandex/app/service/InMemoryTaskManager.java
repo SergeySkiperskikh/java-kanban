@@ -1,5 +1,7 @@
 package com.yandex.app.service;
 
+import com.yandex.app.Exceptions.TaskNotFoundException;
+import com.yandex.app.Exceptions.TaskOverLappingException;
 import com.yandex.app.model.*;
 
 import java.util.*;
@@ -7,8 +9,6 @@ import java.util.stream.Collectors;
 
 
 public class InMemoryTaskManager implements TaskManager {
-    //Полностью переделал класс, оставил одну мапу, где-то подслушал что instandeof лучше не делать
-    //Поэтому добавил таскам поле TaskType
     protected final Map<Integer, Task> tasksById = new HashMap<>();
     protected final TreeSet<Task> prioritizedTasks = new TreeSet<>(Comparator.comparing(Task::getStartTime));
 
@@ -80,14 +80,13 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     @Override
-    public int createTask(Task task) {
+    public int createTask(Task task) throws TaskNotFoundException, TaskOverLappingException {
         if (task == null) {
-            throw new IllegalArgumentException("Task cannot be null");
+            throw new TaskNotFoundException("Task cannot be null");
         }
         if (!(TaskType.EPIC == task.getType())) {
             if (isOverlapping(task)) {
-                System.out.println("Overlapping");
-                return -1;
+                throw new TaskOverLappingException("Is Overlapping");
             }
         }
 
@@ -104,7 +103,7 @@ public class InMemoryTaskManager implements TaskManager {
                 Subtask subtask = (Subtask) task;
                 Epic epic = (Epic) tasksById.get(subtask.getEpicId());
                 if (epic == null) {
-                    throw new IllegalArgumentException("Epic not found");
+                    throw new TaskNotFoundException("Epic not found");
                 }
                 tasksById.put(identifier, subtask);
                 //добавляем сабтаску в епик
@@ -122,20 +121,20 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     @Override
-    public Task getTask(int id) {
+    public Task getTask(int id) throws TaskNotFoundException {
         Task task = tasksById.get(id);
         if (task == null) {
-            throw new IllegalArgumentException("Task not found");
+            throw new TaskNotFoundException("Task not found");
         }
         history.add(task);
         return task;
     }
 
     @Override
-    public void removeTask(int id) {
+    public void removeTask(int id) throws TaskNotFoundException {
         Task task = tasksById.get(id);
         if (task == null) {
-            return;
+            throw new TaskNotFoundException("Task not found");
         }
 
         switch (task.getType()) {
@@ -158,7 +157,8 @@ public class InMemoryTaskManager implements TaskManager {
                 }
 
             }
-            case TASK -> {}
+            case TASK -> {
+            }
             default -> {
                 return;
             }
@@ -170,10 +170,10 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     @Override
-    public void updateTask(Task task, int id) {
+    public void updateTask(Task task, int id) throws TaskNotFoundException, TaskOverLappingException {
         Task oldTask = tasksById.get(id);
         if (oldTask == null) {
-            throw new IllegalArgumentException("Incorrect ID");
+            throw new TaskNotFoundException("Incorrect ID");
         }
 
         task.setId(id);
@@ -196,8 +196,7 @@ public class InMemoryTaskManager implements TaskManager {
             }
             case TASK -> {
                 if (isOverlapping(task)) {
-                    System.out.println("Overlapping");
-                    return;
+                    throw new TaskOverLappingException("Is Overlapping");
                 }
 
                 tasksById.put(id, task);
@@ -206,8 +205,7 @@ public class InMemoryTaskManager implements TaskManager {
             }
             case SUBTASK -> {
                 if (isOverlapping(task)) {
-                    System.out.println("Overlapping");
-                    return;
+                    throw new TaskOverLappingException("Is Overlapping");
                 }
 
                 Subtask oldSubtask = (Subtask) oldTask;
@@ -226,9 +224,6 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public boolean isOverlapping(Task newTask) {
-        //Я исключаю Епики, потому что главное чтобы не было пересечений с сабтасками
-        // Если у епика есть окно между двумя сабтасками, то должна быть возможность вставлять таски в это окно
-        // и при Апдейте сабтаски не нужно проверять что ее интервалы были интервалами епика
         return tasksById.values()
                 .stream()
                 .filter(task -> task.getId() != (newTask.getId()))
@@ -239,10 +234,10 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     @Override
-    public void checkEpicStatus(int epicId) {
+    public void checkEpicStatus(int epicId) throws TaskNotFoundException {
         Epic epic = (Epic) tasksById.get(epicId);
         if (epic == null) {
-            throw new IllegalArgumentException("Epic not found");
+            throw new TaskNotFoundException("Epic not found");
         }
 
         if (epic.getSubtasksId().isEmpty()) {
@@ -274,10 +269,10 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     @Override
-    public List<Subtask> getSubtaskList(int epicId) {
+    public List<Subtask> getSubtaskList(int epicId) throws TaskNotFoundException {
         Epic epic = (Epic) tasksById.get(epicId);
         if (epic == null) {
-            throw new IllegalArgumentException("Epic not found");
+            throw new TaskNotFoundException("Epic not found");
         }
 
         return epic.getSubtasksId()
@@ -296,10 +291,10 @@ public class InMemoryTaskManager implements TaskManager {
         return new ArrayList<>(prioritizedTasks);
     }
 
-    public void recalculateEpicTime(Integer epicId) {
+    public void recalculateEpicTime(Integer epicId) throws TaskNotFoundException {
         Epic epic = (Epic) tasksById.get(epicId);
         if (epic == null) {
-            throw new IllegalArgumentException("Epic not found");
+            throw new TaskNotFoundException("Epic not found");
         }
         prioritizedTasks.remove(epic);
         epic.recalculateTime(getSubtaskList(epicId));

@@ -1,13 +1,17 @@
 package com.yandex.app.service;
 
 import com.yandex.app.Exceptions.ManagerSaveException;
+import com.yandex.app.Exceptions.TaskNotFoundException;
 import com.yandex.app.model.Epic;
 import com.yandex.app.model.Subtask;
 import com.yandex.app.model.Task;
 import com.yandex.app.model.TaskType;
 import com.yandex.app.utility.CSVFormatter;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 
@@ -19,7 +23,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         this.file = file;
     }
 
-    public static FileBackedTaskManager loadFromFile(File file) {
+    public static FileBackedTaskManager loadFromFile(File file) throws ManagerSaveException {
         FileBackedTaskManager taskManager = new FileBackedTaskManager(file);
         try {
             String loaderFile = Files.readString(file.toPath());
@@ -36,7 +40,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                     .forEach(subtask -> {
                         Epic epic = (Epic) taskManager.tasksById.get(subtask.getEpicId());
                         if (epic == null) {
-                            throw new IllegalArgumentException("Epic not found");
+                            throw new TaskNotFoundException("Epic not found");
                         }
                         epic.addSubtask(subtask);
                     });
@@ -48,38 +52,38 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     @Override
-    public Task getTask(int identifier) {
+    public Task getTask(int identifier) throws ManagerSaveException {
         Task task = super.getTask(identifier);
         save();
         return task;
     }
 
     @Override
-    public int createTask(Task task) {
+    public int createTask(Task task) throws ManagerSaveException {
         int createdTaskId = super.createTask(task);
         save();
         return createdTaskId;
     }
 
     @Override
-    public void updateTask(Task task, int identifier) {
+    public void updateTask(Task task, int identifier) throws ManagerSaveException {
         super.updateTask(task, identifier);
         save();
     }
 
     @Override
-    public void removeTask(int identifier) {
+    public void removeTask(int identifier) throws ManagerSaveException {
         super.removeTask(identifier);
         save();
     }
 
     @Override
-    public void removeTasksMap(TaskType taskType) {
+    public void removeTasksMap(TaskType taskType) throws ManagerSaveException {
         super.removeTasksMap(taskType);
         save();
     }
 
-    private void save() {
+    private void save() throws ManagerSaveException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             writer.write(CSVFormatter.getHeader());
             writer.newLine();
@@ -92,7 +96,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                             writer.write(line);
                             writer.newLine();
                         } catch (IOException e) {
-                            throw new UncheckedIOException("Line writing error" + line, e);
+                            throw new ManagerSaveException("Line writing error" + line);
                         }
                     });
         } catch (IOException e) {
@@ -100,9 +104,9 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         }
     }
 
-    private void addTask(Task task) {
+    private void addTask(Task task) throws TaskNotFoundException {
         if (task == null) {
-            throw new IllegalArgumentException("Task cannot be null");
+            throw new TaskNotFoundException("Task cannot be null");
         }
         if (task.getId() > identifier) {
             identifier = task.getId();

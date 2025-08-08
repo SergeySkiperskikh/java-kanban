@@ -1,11 +1,9 @@
 package com.yandex.app.utility;
 
 import com.yandex.app.model.*;
-import com.yandex.app.service.HistoryManager;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
 
 public class CSVFormatter {
     private static final String DELIMITER = ",";
